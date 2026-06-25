@@ -127,7 +127,7 @@ void eliminar_tarea(tarea_t *tarea, int pos)
 
 void resetear_tarea(estado_t *tareas, int pos)
 {
-  /*Vamos a explicar esto: tareas->incompleta.cantidad siempre esta +1 por encima
+  /*Vamos a explicar esto: tareas->incompleta.cantidad siempre esta +0 por encima
   del contador, los indices empiezan en 0, por lo que uso cantidad como indice
   Ademas tengo pos, que aparece como la posicion real + 1
   por lo que tengo que restarle 1 a pos para que de ael indice correcto.u
@@ -162,9 +162,80 @@ void cargar_listas(estado_t *tareas, FILE *f)
 void imp_lista(tarea_t lista)
 {
   for (int i = 0; i < lista.cantidad; i++){
-    printf("%s\n",lista.lista[i]);
+    printf("%d - %s\n",i + 1,lista.lista[i]);
   }
 }
+
+int selec_lista_imp(estado_t tareas)
+{
+
+  int nl = -1;
+  if (tareas.completa.cantidad > 0 && tareas.incompleta.cantidad > 0) {
+    printf("Seleccione la lista de la cual desea eliminar una tarea\n\t");
+    printf("[0] INCOMPLETAS - [1] COMPLETAS\n");
+    scanf("%d",&nl);
+    //Por el momento lo vamos a hacer asi, la idea es que funcione, 
+    //pero mas adelante habra que ver como hacer algo parecido a less,
+    //cuando haya una cantidad de tarea grande
+    if (nl == 0) {
+      imp_lista(tareas.incompleta);
+    } else if (nl == 1) {
+      imp_lista(tareas.completa);
+    }
+
+  } else {
+    tarea_t lista;
+    lista.cantidad = 0;
+
+    if (tareas.incompleta.cantidad > 0) {
+      lista = tareas.incompleta;
+      nl = 0;
+    }
+    else if(tareas.completa.cantidad > 0) {
+      lista = tareas.completa;
+      nl = 1;
+    }
+    if (lista.cantidad > 0) imp_lista(lista);
+
+  }
+
+  return nl;
+}
+
+
+
+
+void ejecutar_comando(estado_t *tareas, char *comando)
+{
+  //Esto es bastante sucio pero por el momento va a funcionar
+  //La desgracia es que cada vez que agregue un comendo el if else va a se4r mas grande
+  char cad[BUFFER];
+  if (strcoll(comando,COMANDOS[0]) == 0 ) {
+    agregar_tarea(cad);
+    //{"add","ls","rm","rst","lin"})
+  } else if (strcoll(comando,COMANDOS[1]) == 0) {
+    imp_lista(tareas->incompleta);
+  } else if (strcoll(comando,COMANDOS[2]) == 0) {
+    int nl = selec_lista_imp(*tareas);
+    if (nl != -1) {
+
+      printf("Seleccione tarea a eliminar: \n");
+
+      tarea_t *lista = NULL;
+      if (nl == 0) lista = &tareas->incompleta;
+      else if (nl == 1) lista = &tareas->completa;
+
+      int nt;
+      scanf("%d",&nt);
+      if (nt > 0 && nt <= lista->cantidad) eliminar_tarea (lista,nt);
+    }
+  }
+
+}
+
+
+
+
 
 
 int main(int argc, char **argv)
