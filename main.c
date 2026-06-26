@@ -100,17 +100,32 @@ long cargar_file(FILE *f,unsigned char **file_buffer)
 }
 
 
+int existe(tarea_t tareas,char *cad)
+{
+  int ret = 0;
+  int i = 0;
+  while (i < tareas.cantidad && strcoll(tareas.lista[i],cad) != 0) i++;
+
+  //Si no llego al total es porque encontro una cadena que es igual.
+  if (i < tareas.cantidad) ret = 1;
 
 
+  return ret;
+
+}
+
+//FIXME: No se deberia poder agregar una tarea dos veces.
 void agregar_en_lista(tarea_t *tareas, char *cad)
 {
-  tareas->lista[tareas->cantidad] = strdup(cad);
-  if (tareas->lista[tareas->cantidad] == NULL) {
-    fprintf(stderr,"MALLOC ERROR: No se pudo reserver memoria\n");
-    exit(1);
+
+  if (!existe(*tareas,cad)){
+    tareas->lista[tareas->cantidad] = strdup(cad);
+    if (tareas->lista[tareas->cantidad] == NULL) {
+      fprintf(stderr,"MALLOC ERROR: No se pudo reserver memoria\n");
+      exit(1);
+    }
+    tareas->cantidad++;
   }
-  tareas->cantidad++;
-    
 }
 
 //Aca simplemente se hace un desplazo de todos los elementos restantes del array.
@@ -215,7 +230,7 @@ void ejecutar_comando(estado_t *tareas, char *comando)
   if (strcoll(comando,COMANDOS[0]) == 0 ) {
     agregar_tarea(cad);
     agregar_en_lista(&tareas->incompleta,cad);
-    //{"add","ls","rm","rst","lin"})
+    //{"add","ls","rm","rst","lc"})
     imp_lista(tareas->incompleta);
   } else if (strcoll(comando,COMANDOS[1]) == 0) {
     imp_lista(tareas->incompleta);
@@ -248,9 +263,15 @@ void ejecutar_comando(estado_t *tareas, char *comando)
 }
 
 
-int guardar_file(FILE *f, estado_t tareas)
+int guardar_file(FILE *f, tarea_t tareas, char *tipo)
 {
-  
+  int n;
+  //Muy "a mano" pero se que va a funcionar.
+  fwrite(tipo,sizeof(char),strlen(tipo),f);
+  for (int i = 0; i < tareas.cantidad; i++) {
+    n = fwrite(tareas.lista[i],sizeof(char),strlen(tareas.lista[i]),f);
+  }
+  return n;
 }
 
 
@@ -284,6 +305,8 @@ int main(int argc, char **argv)
 
   if (argc == 2) ejecutar_comando(&tareas,argv[1]);
   else if (argc > 2) fprintf(stderr, "ERROR: Demasiados argumentos\n");
+  guardar_file(f,tareas.incompleta,TAREAS_INCOMPLETAS);
+  guardar_file(f,tareas.completa,TAREAS_COMPLETAS);
   fclose(f);
   return 0;
 }

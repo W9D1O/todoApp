@@ -1,5 +1,5 @@
 #!/bin/bash
 
-set -e
 
-cc main.c -o main -Wall -Wextra
+set -e
+cc main.c -Wall -Wextra -o main
