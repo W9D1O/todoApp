@@ -27,7 +27,7 @@
 #define TAREAS_INCOMPLETAS "# INCOMPLETAS\n"
 #define MAX_LE 15
 //No es lo mas optimo pero hacer una table hash me parecio mucho
-#define COMANDOS ((const char*[])  {"-add","-li","-rm","-rst","-lc"})
+#define COMANDOS ((const char*[])  {"-add","-li","-rm","-rst","-lc","-ct"})
 
 #define UNO 49
 
@@ -55,13 +55,6 @@ void agregar_tarea(char cad[])
   strncat(cad,"\n",sizeof(&cad) - strlen(cad) - 1);
 }
 
-void completar_tarea(char cad[])
-{
-  /*el fin de linea es \0 strlen cuenta los caracteres incluso ese
-  al restarte 2 quedo posicionado en el espacio"*/
-  int pos = strlen(cad) - 2;
-  cad[pos] = 'X';
-}
 
 
 /*FIXME: Tanto agregar_tarea como
@@ -147,16 +140,19 @@ void eliminar_tarea(tarea_t *tarea, int pos, bool vf)
  
 }
 
-void resetear_tarea(estado_t *tareas, int pos)
+
+
+// Resetea o completa una tarea, según como se pase los parametros.
+void rc_tarea(tarea_t *dst, tarea_t *src, int pos)
 {
   /*Vamos a explicar esto: tareas->incompleta.cantidad siempre esta +1 por encima
   del contador, los indices empiezan en 0, por lo que uso cantidad como indice
   Ademas tengo pos, que aparece como la posicion real + 1
   por lo que tengo que restarle 1 a pos para que de ael indice correcto.u
   */
-  tareas->incompleta.lista[tareas->incompleta.cantidad] = tareas->completa.lista[pos - 1];
-  tareas->incompleta.cantidad++;
-  eliminar_tarea(&tareas->completa,pos,false);
+  dst->lista[dst->cantidad] = src->lista[pos - 1];
+  dst->cantidad++;
+  eliminar_tarea(src,pos,false);
 }
 
 
@@ -171,7 +167,7 @@ void cargar_listas(estado_t *tareas, FILE *f)
     if (linea[0] == '#') {
       strcpy(lineaDeEstado,linea);
     } else {
-      if (strcoll(lineaDeEstado,TAREAS_COMPLETAS)) {
+      if (strcmp(lineaDeEstado,TAREAS_COMPLETAS) == 0) {
         agregar_en_lista(&tareas->completa,linea);
       } else {
         agregar_en_lista(&tareas->incompleta,linea);
@@ -233,14 +229,14 @@ void ejecutar_comando(estado_t *tareas, char *comando)
   //La desgracia es que cada vez que agregue un comendo el if else va a se4r mas grande
   char cad[BUFFER];
   int nt;
-  if (strcoll(comando,COMANDOS[0]) == 0 ) {
+  if (strcmp(comando,COMANDOS[0]) == 0 ) {
     agregar_tarea(cad);
     agregar_en_lista(&tareas->incompleta,cad);
     //{"add","ls","rm","rst","lc"})
     imp_lista(tareas->incompleta);
-  } else if (strcoll(comando,COMANDOS[1]) == 0) {
+  } else if (strcmp(comando,COMANDOS[1]) == 0) {
     imp_lista(tareas->incompleta);
-  } else if (strcoll(comando,COMANDOS[2]) == 0) {
+  } else if (strcmp(comando,COMANDOS[2]) == 0) {
     int nl = selec_lista_imp(*tareas);
     if (nl != -1) {
 
@@ -256,15 +252,22 @@ void ejecutar_comando(estado_t *tareas, char *comando)
         eliminar_tarea (lista,nt,true);
 
       }
-    } else if (strcoll(comando,COMANDOS[3]) == 0) {
-      imp_lista(tareas->completa);
-      printf("Seleccione la tarea a resetear(1..%d):\n",tareas->completa.cantidad);
-      scanf("%d",&nt);
-      resetear_tarea(tareas,nt);
-      imp_lista(tareas->incompleta);
-    } else if (strcoll(comando,COMANDOS[4]) == 0) {
-      imp_lista(tareas->completa);
     }
+  }
+  else if (strcmp(comando,COMANDOS[3]) == 0) {
+    imp_lista(tareas->completa);
+    printf("Seleccione la tarea a resetear(1..%d):\n",tareas->completa.cantidad);
+    scanf("%d",&nt);
+    rc_tarea(&tareas->incompleta,&tareas->completa,nt);
+    imp_lista(tareas->incompleta);
+  } else if (strcmp(comando,COMANDOS[4]) == 0) {
+    imp_lista(tareas->completa);
+  } else if (strcmp(comando,COMANDOS[5]) == 0) {
+    imp_lista(tareas->incompleta);
+    printf("Seleccione la tarea completada(1..%d):\n",tareas->incompleta.cantidad);
+    scanf("%d",&nt);
+    rc_tarea(&tareas->completa,&tareas->incompleta,nt);
+    imp_lista(tareas->completa);
   }
 }
 
@@ -292,12 +295,14 @@ void menu(estado_t *tareas)
       printf("\t3 - Eliminar tarea \n"); 
       printf("\t4 - Restaurar tarea \n"); 
       printf("\t5 - Listar tareas completadas \n"); 
+      printf("\t6 - Marcar tarea completada \n"); 
       scanf(" %c",&c);
-    } while (c < '1' || (c > '5' && c != 'q'));
+    } while (c < '1' || (c > '6' && c != 'q'));
 
     if (c != 'q') {
       //Para convertir una char dek 0..9 se le resta 48 a eso le sumo 1 para que corresponda con los indices
-      char *coman =  COMANDOS[c -UNO];
+      char *coman =  COMANDOS[c - UNO];
+      printf(" %s\n",coman); 
       ejecutar_comando(tareas,coman);
       printf("Presione '0' para volver al menu anterior o presione otra tecla para salir: \n");
       scanf(" %c",&c);
