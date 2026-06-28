@@ -130,7 +130,10 @@ void eliminar_tarea(tarea_t *tarea, int pos, bool vf)
   //acá el tema es el siguiente, esta funcion ademas la estoy usando
   //Para hacer un reset, tengo dos alternativas o usar un booleano
   //para decidir si hacer un free de la cadena, segun corresponda 
-  if (vf) free(tarea->lista[posR]);
+  if (vf) {
+    free(tarea->lista[posR]);
+    tarea->lista[posR] = NULL;
+}
 
     for (int i = posR; i < tarea->cantidad -1; i++){
       tarea->lista[i] = tarea->lista[i + 1];
@@ -323,6 +326,7 @@ int main(int argc, char **argv)
   //acá armo la ruta absoluta
   snprintf(full_path,sizeof(full_path),"%s/%s%s",getenv("HOME"),PATH,ARCHIVO);
   FILE *f = fopen(full_path,"r+");
+  long sf = size_file(f);
   //Otra cosa que ahora no estoy teniendo en cuenta es que el archivo si exista pero
   //que el path sea incorrecto, voy a poner un FIXME pero esto en linux deberia funcionar.
   if (f == NULL) {
@@ -336,16 +340,22 @@ int main(int argc, char **argv)
 
 
   }
-  if (size_file(f) == 0) {
-    printf("No se han cargado tareas\n");
-  } else {
+
+  if (sf > 0) {
     cargar_listas(&tareas,f);
+    fclose(f);
+    //Esto se agrego porque pasabe que si el archivo era menor que el original
+    // dejaba restos del anterior y hacia parece que eliminar no funcionaba.
+    f = fopen(full_path,"w");
+    if (f == NULL) {
+      perror("fopen (r)");
+      exit(1);
+    }
   }
 
   if (argc == 2) ejecutar_comando(&tareas,argv[1]);
   else if (argc > 2) fprintf(stderr, "ERROR: Demasiados argumentos\n");
   else if (argc == 1) menu(&tareas);
-  rewind(f);
   guardar_file(f,tareas.incompleta,TAREAS_INCOMPLETAS);
   guardar_file(f,tareas.completa,TAREAS_COMPLETAS);
   fclose(f);
