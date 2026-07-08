@@ -158,7 +158,6 @@ int main(int argc, char **argv)
   //acá armo la ruta absoluta
   snprintf(full_path,sizeof(full_path),"%s/%s%s",getenv("HOME"),PATH,ARCHIVO);
   FILE *f = fopen(full_path,"r+");
-  long sf = size_file(f);
   //Otra cosa que ahora no estoy teniendo en cuenta es que el archivo si exista pero
   //que el path sea incorrecto, voy a poner un FIXME pero esto en linux deberia funcionar.
   if (f == NULL) {
@@ -173,6 +172,7 @@ int main(int argc, char **argv)
 
   }
 
+  long sf = size_file(f);
   if (sf > 0) {
     cargar_listas(&tareas,f);
     fclose(f);
